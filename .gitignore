@@ -15,5 +15,14 @@ wheels/
 # OS
 .DS_Store
 
-# Logs
-vault/Logs/
+
+# Auth tokens & sessions
+token.json
+credentials.json
+.whatsapp_session/
+
+# Node modules
+node_modules/
+
+# MCP server build
+mcp_servers/*/node_modules/

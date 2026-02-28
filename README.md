@@ -202,6 +202,16 @@ uv run python -m src.ceo_briefing
 - **Ralph Wiggum Loop** — Autonomous multi-step task completion
 - **Architecture Docs** — Full system documentation (ARCHITECTURE.md)
 
+### Platinum Tier
+- **Dual-Agent Architecture** — Cloud agent (draft-only) + Local agent (full authority)
+- **Git-Synced Vault** — Cloud and Local vaults sync via bare Git repo
+- **Work-Zone Specialization** — Cloud: email triage, social drafts | Local: approvals, sends
+- **Claim-by-Move** — Atomic task claiming prevents double-work between agents
+- **Domain Routing** — Tasks routed to email/social/accounting/general subfolders
+- **Signal Bus** — Cloud writes signals, Local merges into Dashboard
+- **Health Monitoring** — Watchdog monitors agent PIDs and sync freshness
+- **Platinum Demo** — End-to-end: email → cloud draft → local approve → send → done
+
 ## Project Structure
 
 ```
@@ -242,11 +252,23 @@ ai_employee/
 │   │   ├── base_watcher.py       # Abstract base class
 │   │   ├── gmail_watcher.py      # Gmail monitoring
 │   │   └── whatsapp_watcher.py   # WhatsApp monitoring
-│   └── social_media/
+│   ├── social_media/
+│   │   ├── __init__.py
+│   │   ├── facebook_poster.py    # Facebook (mock)
+│   │   ├── instagram_poster.py   # Instagram (mock)
+│   │   └── twitter_poster.py     # Twitter/X (mock)
+│   └── platinum/
 │       ├── __init__.py
-│       ├── facebook_poster.py    # Facebook (mock)
-│       ├── instagram_poster.py   # Instagram (mock)
-│       └── twitter_poster.py     # Twitter/X (mock)
+│       ├── agent_identity.py     # Agent roles & permissions
+│       ├── vault_structure.py    # Platinum vault folder layout
+│       ├── domain_router.py      # Route tasks to domain subfolders
+│       ├── claim_manager.py      # Atomic claim-by-move
+│       ├── vault_sync.py         # Git-based vault sync
+│       ├── signal_bus.py         # Cloud→Local signal system
+│       ├── cloud_runner.py       # Cloud agent (draft-only)
+│       ├── local_runner.py       # Local agent (full authority)
+│       ├── watchdog.py           # Health monitoring
+│       └── demo.py               # Platinum demo script
 ├── mcp_servers/
 │   ├── email_server/
 │   │   ├── package.json
@@ -254,8 +276,14 @@ ai_employee/
 │   └── odoo_server/
 │       ├── package.json
 │       └── index.js              # Odoo accounting MCP server (mock)
+├── vault_sync.git/               # Bare Git repo (Platinum sync)
+├── vault_cloud/                  # Cloud agent vault (Platinum)
+├── vault_local/                  # Local agent vault (Platinum)
 └── scripts/
-    ├── start_all.sh              # Start all services
+    ├── start_all.sh              # Start Gold tier services
+    ├── start_platinum.sh         # Start Platinum tier (Cloud+Local+Watchdog)
+    ├── stop_platinum.sh          # Stop Platinum services
+    ├── init_vault_sync.sh        # Initialize vault sync repos
     ├── stop_all.sh               # Stop all services
     ├── setup_cron.sh             # Configure cron jobs
     └── ralph_loop.sh             # Start Ralph Wiggum loop
@@ -289,9 +317,38 @@ ai_employee/
 | `ODOO_PASSWORD` | `admin` | Odoo password |
 | `BRIEFING_DAY` | `Monday` | Day for CEO briefing |
 
+## Platinum Tier Usage
+
+### Initialize vault sync
+```bash
+bash scripts/init_vault_sync.sh
+```
+
+### Run Platinum demo (end-to-end test)
+```bash
+uv run python -m src.platinum.demo
+```
+
+### Start all Platinum services
+```bash
+bash scripts/start_platinum.sh
+```
+
+### Stop Platinum services
+```bash
+bash scripts/stop_platinum.sh
+```
+
+### Platinum workflow
+1. Tasks land in `vault_cloud/Needs_Action/<domain>/`
+2. Cloud agent drafts → `vault_cloud/Pending_Approval/<domain>/`
+3. Git sync propagates to `vault_local/`
+4. User approves: `mv vault_local/Pending_Approval/<domain>/APPROVE_*.md vault_local/Approved/`
+5. Local agent sends → `vault_local/Done/`
+
 ## Tier Progress
 
 - [x] **Bronze** — Local file-based task processor with plan + execute
 - [x] **Silver** — Watchers, approval system, LinkedIn, MCP, Dashboard
 - [x] **Gold** — Social media, Odoo accounting, CEO Briefing, Ralph Wiggum, error recovery
-- [ ] **Platinum** — Cloud-deployed 24/7 system
+- [x] **Platinum** — Dual-agent Cloud+Local architecture, vault sync, health monitoring

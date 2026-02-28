@@ -67,6 +67,15 @@ ODOO_PASSWORD = os.getenv("ODOO_PASSWORD", "admin")
 # CEO Briefing settings
 BRIEFING_DAY = os.getenv("BRIEFING_DAY", "Monday")
 
+# Platinum Tier settings
+AGENT_ROLE = os.getenv("AGENT_ROLE", "local")
+VAULT_CLOUD_PATH = BASE_DIR / os.getenv("VAULT_CLOUD_PATH", "vault_cloud")
+VAULT_LOCAL_PATH = BASE_DIR / os.getenv("VAULT_LOCAL_PATH", "vault_local")
+VAULT_SYNC_PATH = BASE_DIR / os.getenv("VAULT_SYNC_PATH", "vault_sync.git")
+SYNC_INTERVAL = int(os.getenv("SYNC_INTERVAL", "5"))
+WATCHDOG_INTERVAL = int(os.getenv("WATCHDOG_INTERVAL", "30"))
+DOMAINS = ["email", "social", "accounting", "general"]
+
 # Sensitive action keywords (trigger approval)
 SENSITIVE_KEYWORDS = [
     "payment", "invoice", "transfer", "send money",

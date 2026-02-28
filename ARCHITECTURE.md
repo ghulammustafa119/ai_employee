@@ -200,3 +200,67 @@ models = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/object')
 ```
 
 Or use the Odoo MCP server (`mcp_servers/odoo_server/`) with real HTTP calls to `{odoo_url}/jsonrpc`.
+
+---
+
+## Platinum Tier: Dual-Agent Architecture
+
+### Overview
+
+```
+┌──────────────┐     vault_sync.git     ┌──────────────┐
+│  Cloud Agent │ ◄──── Git Sync ────► │  Local Agent │
+│  (draft-only)│     (bare repo)       │(full authority)│
+└──────┬───────┘                       └──────┬───────┘
+       │                                      │
+  vault_cloud/                           vault_local/
+```
+
+### Cloud Agent (`src/platinum/cloud_runner.py`)
+- Scans `Needs_Action/email/`, `social/`, `accounting/`, `general/`
+- Claims tasks atomically via `In_Progress/cloud/`
+- Generates drafts using LLM, writes to `Pending_Approval/<domain>/`
+- Writes signals to `Signals/` for Local to consume
+- **CANNOT**: approve, send, write Dashboard, touch WhatsApp/payments
+
+### Local Agent (`src/platinum/local_runner.py`)
+- Processes approvals across all domain subfolders
+- Executes sends with full authority (email, social posts, Odoo entries)
+- Merges Cloud signals into Dashboard (single-writer rule)
+- Owns WhatsApp session and payment/banking actions
+- Runs CEO Briefing schedule
+
+### Vault Sync (`src/platinum/vault_sync.py`)
+- Git-based sync using a bare repo as intermediary
+- Pull with `--rebase --autostash`, fallback to `--strategy-option=theirs`
+- Background sync thread every 5 seconds
+- Only markdown files sync — secrets never leave their agent
+
+### Claim-by-Move (`src/platinum/claim_manager.py`)
+- `os.rename()` is atomic on same filesystem
+- First agent to move file from `Needs_Action/<domain>/` to `In_Progress/<agent>/` owns it
+- Other agent's claim attempt raises `FileNotFoundError` — safely skipped
+
+### Domain Routing (`src/platinum/domain_router.py`)
+Tasks are routed by filename prefix or content keywords:
+- `EMAIL_*` → `email/`
+- `FACEBOOK_*`, `TWEET_*` → `social/`
+- `INVOICE_*` → `accounting/`
+- Everything else → `general/`
+
+### Signal Bus (`src/platinum/signal_bus.py`)
+- Cloud writes small `.md` files to `Signals/`
+- Local reads, consumes (deletes), and merges into Dashboard
+- Preserves single-writer rule for Dashboard.md
+
+### Health Monitoring (`src/platinum/watchdog.py`)
+- Checks Cloud/Local PIDs every 30 seconds
+- Monitors Git sync freshness (last commit < 120s)
+- Writes health report to `Updates/health_status.md`
+
+### Platinum Demo Flow
+```
+Email arrives → Cloud claims → Cloud drafts reply → Pending_Approval/email/
+    → Git sync → Local sees approval → User approves → Approved/
+    → Local sends (mock) → Done/ → Logs/ → Dashboard updated
+```

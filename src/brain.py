@@ -10,6 +10,8 @@ from src.config import (
     NEEDS_ACTION, PLANS, DONE, LOGS, PENDING_APPROVAL, APPROVED, REJECTED,
     GROQ_API_KEY, DRY_RUN, SENSITIVE_KEYWORDS,
 )
+from src.retry_handler import with_retry, graceful_degrade
+from src.audit_logger import audit
 
 logger = logging.getLogger(__name__)
 client = Groq(api_key=GROQ_API_KEY)
@@ -83,9 +85,10 @@ def process_rejected(rejected_file: Path) -> None:
     logger.info(f"Task rejected and kept in Rejected/: {processed_name}")
 
 
+@with_retry(max_attempts=3, base_delay=2)
 def call_llm(system_prompt: str, user_message: str, max_tokens: int = 2048) -> str:
-    """Call Groq LLM with given prompts."""
-    try:
+    """Call Groq LLM with given prompts (with automatic retry on transient errors)."""
+    with audit.timed_event("llm_call", actor="groq", target="llama-3.3-70b-versatile"):
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
@@ -95,9 +98,6 @@ def call_llm(system_prompt: str, user_message: str, max_tokens: int = 2048) -> s
             max_tokens=max_tokens,
         )
         return response.choices[0].message.content
-    except Exception as e:
-        logger.error(f"LLM call failed: {e}")
-        raise
 
 
 def generate_plan(task_content: str, task_name: str) -> str:
@@ -240,6 +240,16 @@ def log_action(task_name: str, action: str, result: str, details: str = "") -> N
         f.write(line)
 
 
+def detect_domain(task_content: str) -> str:
+    """Detect if a task is personal or business domain."""
+    business_keywords = ["invoice", "client", "revenue", "project", "budget", "payment", "contract", "proposal"]
+    personal_keywords = ["email", "whatsapp", "message", "appointment", "reminder", "personal"]
+    content_lower = task_content.lower()
+    biz_score = sum(1 for kw in business_keywords if kw in content_lower)
+    personal_score = sum(1 for kw in personal_keywords if kw in content_lower)
+    return "business" if biz_score > personal_score else "personal"
+
+
 def process_task(task_file: Path) -> None:
     """Process a single task: read → plan → (approve or execute) → log."""
     task_name = task_file.stem
@@ -256,6 +266,11 @@ def process_task(task_file: Path) -> None:
         logger.warning(f"Empty task file: {task_file.name}, skipping")
         log_action(task_name, "task_skipped", "empty_file")
         return
+
+    # 1b. Detect domain (personal vs business)
+    domain = detect_domain(task_content)
+    logger.info(f"Task domain: {domain}")
+    audit.log_event("task_classified", target=task_name, parameters={"domain": domain})
 
     # 2. Generate plan
     try:

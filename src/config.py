@@ -16,10 +16,13 @@ INBOX = VAULT_PATH / "Inbox"
 PENDING_APPROVAL = VAULT_PATH / "Pending_Approval"
 APPROVED = VAULT_PATH / "Approved"
 REJECTED = VAULT_PATH / "Rejected"
+BRIEFINGS = VAULT_PATH / "Briefings"
+ACCOUNTING = VAULT_PATH / "Accounting"
 
 # Vault files
 DASHBOARD_FILE = VAULT_PATH / "Dashboard.md"
 HANDBOOK_FILE = VAULT_PATH / "Company_Handbook.md"
+BUSINESS_GOALS_FILE = VAULT_PATH / "Business_Goals.md"
 
 # General settings
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "10"))
@@ -44,6 +47,26 @@ WHATSAPP_KEYWORDS = os.getenv(
 LINKEDIN_EMAIL = os.getenv("LINKEDIN_EMAIL", "")
 LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD", "")
 
+# Facebook / Instagram (Meta Graph API) settings
+META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
+META_PAGE_ID = os.getenv("META_PAGE_ID", "")
+META_INSTAGRAM_ACCOUNT_ID = os.getenv("META_INSTAGRAM_ACCOUNT_ID", "")
+
+# Twitter / X API settings
+TWITTER_API_KEY = os.getenv("TWITTER_API_KEY", "")
+TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET", "")
+TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN", "")
+TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET", "")
+
+# Odoo Community (JSON-RPC) settings
+ODOO_URL = os.getenv("ODOO_URL", "http://localhost:8069")
+ODOO_DB = os.getenv("ODOO_DB", "odoo")
+ODOO_USERNAME = os.getenv("ODOO_USERNAME", "admin")
+ODOO_PASSWORD = os.getenv("ODOO_PASSWORD", "admin")
+
+# CEO Briefing settings
+BRIEFING_DAY = os.getenv("BRIEFING_DAY", "Monday")
+
 # Sensitive action keywords (trigger approval)
 SENSITIVE_KEYWORDS = [
     "payment", "invoice", "transfer", "send money",
@@ -51,3 +74,14 @@ SENSITIVE_KEYWORDS = [
     "reply", "respond", "message",
     "post", "publish", "share",
 ]
+
+
+def ensure_vault_structure() -> None:
+    """Create all required vault folders if they don't exist."""
+    folders = [
+        NEEDS_ACTION, PLANS, DONE, LOGS, INBOX,
+        PENDING_APPROVAL, APPROVED, REJECTED,
+        BRIEFINGS, ACCOUNTING,
+    ]
+    for folder in folders:
+        folder.mkdir(parents=True, exist_ok=True)

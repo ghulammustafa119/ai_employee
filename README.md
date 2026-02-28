@@ -1,6 +1,6 @@
 # AI Employee - Personal Autonomous Task Processor
 
-A local-first, file-based AI employee that reads tasks, generates plans, executes them, and logs everything automatically. Features watchers for Gmail/WhatsApp, human-in-the-loop approval, LinkedIn auto-posting, and Email MCP server.
+A local-first, file-based AI employee that reads tasks, generates plans, executes them, and logs everything automatically. Features watchers for Gmail/WhatsApp, human-in-the-loop approval, social media posting (LinkedIn, Facebook, Instagram, Twitter), Odoo accounting, CEO Briefing, and autonomous task loops.
 
 ## Architecture
 
@@ -13,8 +13,12 @@ vault/
 ├── Approved/            ← Human-approved actions
 ├── Rejected/            ← Human-rejected actions
 ├── Done/                ← Completed tasks + output deliverables
-├── Logs/                ← JSON audit logs
+├── Logs/                ← JSON + audit logs
+├── Briefings/           ← Weekly CEO briefings
+├── Accounting/          ← Financial data
+├── In_Progress/         ← Ralph Wiggum loop state
 ├── Dashboard.md         ← Live system status
+├── Business_Goals.md    ← Revenue targets & metrics
 └── Company_Handbook.md  ← Rules of engagement
 ```
 
@@ -22,7 +26,7 @@ vault/
 
 ```
 [Gmail/WhatsApp Watcher] → Needs_Action/task.md
-  → AI reads task
+  → AI reads task → Detects domain (personal/business)
     → Is it sensitive?
       YES → Pending_Approval/ (wait for human)
             → Move to Approved/ → AI executes → Done/
@@ -39,7 +43,8 @@ vault/
 - **LLM:** Groq (Llama 3.3 70B) - Free tier
 - **Storage:** Local Markdown files (vault)
 - **Watchers:** Gmail API, Playwright (WhatsApp)
-- **MCP:** Email MCP Server (Node.js)
+- **MCP Servers:** Email (Gmail), Odoo Accounting (mock)
+- **Social Media:** Facebook, Instagram, Twitter (mock), LinkedIn (Playwright)
 
 ## Setup
 
@@ -55,9 +60,10 @@ source $HOME/.local/bin/env
 ```bash
 uv sync
 cd mcp_servers/email_server && npm install
+cd mcp_servers/odoo_server && npm install
 ```
 
-### 3. Install Playwright Browsers (for WhatsApp)
+### 3. Install Playwright Browsers (for WhatsApp/LinkedIn)
 
 ```bash
 uv run playwright install chromium
@@ -68,6 +74,8 @@ uv run playwright install chromium
 - **Groq (required):** https://console.groq.com/keys (free)
 - **Gmail (optional):** Google Cloud Console → Gmail API → OAuth credentials
 - **LinkedIn (optional):** Set email/password in .env
+- **Facebook/Instagram (optional):** Meta Graph API access token
+- **Twitter (optional):** Twitter API v2 keys
 
 ### 5. Configure .env
 
@@ -90,14 +98,40 @@ WHATSAPP_KEYWORDS=urgent,asap,invoice,payment,help
 # LinkedIn
 LINKEDIN_EMAIL=
 LINKEDIN_PASSWORD=
+
+# Facebook / Instagram (Meta Graph API)
+META_ACCESS_TOKEN=
+META_PAGE_ID=
+META_INSTAGRAM_ACCOUNT_ID=
+
+# Twitter / X
+TWITTER_API_KEY=
+TWITTER_API_SECRET=
+TWITTER_ACCESS_TOKEN=
+TWITTER_ACCESS_SECRET=
+
+# Odoo Community
+ODOO_URL=http://localhost:8069
+ODOO_DB=odoo
+ODOO_USERNAME=admin
+ODOO_PASSWORD=admin
+
+# CEO Briefing
+BRIEFING_DAY=Monday
 ```
 
 ## Usage
 
-### Run the AI Employee (Core)
+### Run the AI Employee (Full Runner)
 
 ```bash
 uv run python -m src.runner
+```
+
+### Run All Services
+
+```bash
+./scripts/start_all.sh
 ```
 
 ### Run Gmail Watcher
@@ -112,10 +146,23 @@ uv run python -m src.watchers.gmail_watcher
 uv run python -m src.watchers.whatsapp_watcher
 ```
 
-### Generate LinkedIn Post
+### Generate Social Media Posts
 
 ```bash
 uv run python -m src.linkedin_poster
+uv run python test_social_approval.py
+```
+
+### Generate CEO Briefing
+
+```bash
+uv run python -m src.ceo_briefing
+```
+
+### Start Ralph Wiggum Loop
+
+```bash
+./scripts/ralph_loop.sh "Process all files in Needs_Action" --max-iterations 10
 ```
 
 ### Approval Workflow
@@ -143,14 +190,26 @@ uv run python -m src.linkedin_poster
 - **Live Dashboard** — Auto-updated Dashboard.md with system status
 - **Company Handbook** — Configurable rules for AI behavior
 
+### Gold Tier
+- **Facebook Integration** — AI-generated posts with approval workflow (mock)
+- **Instagram Integration** — AI-generated captions with approval workflow (mock)
+- **Twitter/X Integration** — AI-generated tweets with approval workflow (mock)
+- **Odoo Accounting** — Invoice, payment, contact management via MCP (mock)
+- **CEO Briefing** — Weekly autonomous business audit with AI-generated report
+- **Cross-Domain Routing** — Auto-detects personal vs business tasks
+- **Error Recovery** — Retry with exponential backoff, graceful degradation
+- **Structured Audit Logging** — Enhanced logging with timing and monthly summaries
+- **Ralph Wiggum Loop** — Autonomous multi-step task completion
+- **Architecture Docs** — Full system documentation (ARCHITECTURE.md)
+
 ## Project Structure
 
 ```
-ai_employ/
+ai_employee/
 ├── pyproject.toml
 ├── .env                          # Secrets (gitignored)
-├── .gitignore
 ├── README.md
+├── ARCHITECTURE.md               # System architecture docs
 ├── documents.txt                 # Hackathon spec
 ├── vault/
 │   ├── Needs_Action/
@@ -161,24 +220,45 @@ ai_employ/
 │   ├── Done/
 │   ├── Logs/
 │   ├── Inbox/
+│   ├── Briefings/
+│   ├── Accounting/
 │   ├── Dashboard.md
+│   ├── Business_Goals.md
 │   └── Company_Handbook.md
 ├── src/
 │   ├── __init__.py
 │   ├── config.py                 # Paths, settings, env loading
-│   ├── brain.py                  # AI logic + approval system
-│   ├── runner.py                 # Main polling loop
+│   ├── brain.py                  # AI logic + approval + domain routing
+│   ├── runner.py                 # Main polling loop (orchestrator)
 │   ├── dashboard.py              # Dashboard generator
 │   ├── linkedin_poster.py        # LinkedIn post generator
-│   └── watchers/
+│   ├── odoo_client.py            # Odoo accounting client (mock)
+│   ├── ceo_briefing.py           # Weekly CEO briefing generator
+│   ├── ralph_wiggum.py           # Autonomous task loop
+│   ├── retry_handler.py          # Error recovery & retry logic
+│   ├── audit_logger.py           # Structured audit logging
+│   ├── watchers/
+│   │   ├── __init__.py
+│   │   ├── base_watcher.py       # Abstract base class
+│   │   ├── gmail_watcher.py      # Gmail monitoring
+│   │   └── whatsapp_watcher.py   # WhatsApp monitoring
+│   └── social_media/
 │       ├── __init__.py
-│       ├── base_watcher.py       # Abstract base class
-│       ├── gmail_watcher.py      # Gmail monitoring
-│       └── whatsapp_watcher.py   # WhatsApp monitoring
-└── mcp_servers/
-    └── email_server/
-        ├── package.json
-        └── index.js              # Email MCP server
+│       ├── facebook_poster.py    # Facebook (mock)
+│       ├── instagram_poster.py   # Instagram (mock)
+│       └── twitter_poster.py     # Twitter/X (mock)
+├── mcp_servers/
+│   ├── email_server/
+│   │   ├── package.json
+│   │   └── index.js              # Email MCP server
+│   └── odoo_server/
+│       ├── package.json
+│       └── index.js              # Odoo accounting MCP server (mock)
+└── scripts/
+    ├── start_all.sh              # Start all services
+    ├── stop_all.sh               # Stop all services
+    ├── setup_cron.sh             # Configure cron jobs
+    └── ralph_loop.sh             # Start Ralph Wiggum loop
 ```
 
 ## Configuration
@@ -196,10 +276,22 @@ ai_employ/
 | `WHATSAPP_KEYWORDS` | `urgent,asap,...` | Keywords to trigger WhatsApp alerts |
 | `LINKEDIN_EMAIL` | — | LinkedIn login email |
 | `LINKEDIN_PASSWORD` | — | LinkedIn login password |
+| `META_ACCESS_TOKEN` | — | Meta Graph API token |
+| `META_PAGE_ID` | — | Facebook Page ID |
+| `META_INSTAGRAM_ACCOUNT_ID` | — | Instagram account ID |
+| `TWITTER_API_KEY` | — | Twitter API key |
+| `TWITTER_API_SECRET` | — | Twitter API secret |
+| `TWITTER_ACCESS_TOKEN` | — | Twitter access token |
+| `TWITTER_ACCESS_SECRET` | — | Twitter access secret |
+| `ODOO_URL` | `http://localhost:8069` | Odoo server URL |
+| `ODOO_DB` | `odoo` | Odoo database name |
+| `ODOO_USERNAME` | `admin` | Odoo username |
+| `ODOO_PASSWORD` | `admin` | Odoo password |
+| `BRIEFING_DAY` | `Monday` | Day for CEO briefing |
 
 ## Tier Progress
 
 - [x] **Bronze** — Local file-based task processor with plan + execute
 - [x] **Silver** — Watchers, approval system, LinkedIn, MCP, Dashboard
-- [ ] **Gold** — Multi-domain integration, Odoo, CEO Briefing
+- [x] **Gold** — Social media, Odoo accounting, CEO Briefing, Ralph Wiggum, error recovery
 - [ ] **Platinum** — Cloud-deployed 24/7 system

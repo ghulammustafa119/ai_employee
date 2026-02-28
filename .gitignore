@@ -26,3 +26,15 @@ node_modules/
 
 # MCP server build
 mcp_servers/*/node_modules/
+mcp_servers/*/package-lock.json
+
+# Platinum tier runtime data
+vault_sync.git/
+vault_cloud/
+vault_local/
+
+# Vault runtime data (generated at runtime)
+vault/Logs/
+vault/Done/
+vault/Briefings/
+vault/In_Progress/

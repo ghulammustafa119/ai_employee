@@ -70,12 +70,12 @@ def update_dashboard() -> None:
 ## Task Summary
 | Folder | Count |
 |--------|-------|
-| Needs_Action | {needs_action} |
-| Plans | {plans} |
-| Pending_Approval | {pending} |
-| Approved | {approved} |
-| Rejected | {rejected} |
-| Done | {done} |
+| [[Needs_Action]] | {needs_action} |
+| [[Plans]] | {plans} |
+| [[Pending_Approval]] | {pending} |
+| [[Approved]] | {approved} |
+| [[Rejected]] | {rejected} |
+| [[Done]] | {done} |
 
 ## Recent Activity
 | Timestamp | Task | Action | Result |
@@ -83,9 +83,11 @@ def update_dashboard() -> None:
 {activity_table}
 
 ## Quick Actions
-- Drop `.md` files in `vault/Needs_Action/` to create tasks
-- Move files from `Pending_Approval/` to `Approved/` to approve
-- Move files from `Pending_Approval/` to `Rejected/` to reject
+- Drop `.md` files in [[Needs_Action]] to create tasks
+- Move files from [[Pending_Approval]] to [[Approved]] to approve
+- Move files from [[Pending_Approval]] to [[Rejected]] to reject
+- Check [[Plans]] for AI-generated plans
+- Check [[Done]] for completed tasks
 """
 
     DASHBOARD_FILE.write_text(dashboard)

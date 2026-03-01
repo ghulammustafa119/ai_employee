@@ -155,18 +155,19 @@ def update_platinum_dashboard(vault_root: Path):
 ## Task Summary
 | Folder | Count |
 |--------|-------|
-| Needs_Action | {needs_action} |
-| Plans | {plans} |
-| Pending_Approval | {pending} |
-| Approved | {approved} |
-| Rejected | {rejected} |
-| Done | {done} |
+| [[Needs_Action]] | {needs_action} |
+| [[Plans]] | {plans} |
+| [[Pending_Approval]] | {pending} |
+| [[Approved]] | {approved} |
+| [[Rejected]] | {rejected} |
+| [[Done]] | {done} |
 {health_section}
 ## Quick Actions
-- Cloud Agent drafts are in `Pending_Approval/<domain>/`
-- Move to `Approved/` to approve and execute
-- Move to `Rejected/` to reject
-- Check `Signals/` for Cloud agent updates
+- Cloud Agent drafts are in [[Pending_Approval]]
+- Move to [[Approved]] to approve and execute
+- Move to [[Rejected]] to reject
+- Check [[Plans]] for AI-generated plans
+- Check [[Done]] for completed tasks
 """
     dashboard_file.write_text(dashboard)
 

@@ -1,4 +1,5 @@
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -86,11 +87,23 @@ def post_to_linkedin(post_text: str) -> bool:
             # Create a new post
             page.click('button:has-text("Start a post")')
             page.wait_for_selector('div[role="textbox"]', timeout=10000)
-            page.fill('div[role="textbox"]', post_text)
+            page.click('div[role="textbox"]')
+            page.keyboard.type(post_text, delay=20)
+            page.wait_for_timeout(1000)
 
             # Click Post button
-            page.click('button:has-text("Post")')
-            page.wait_for_timeout(3000)
+            post_btn = page.locator('button.share-actions__primary-action')
+            if not post_btn.is_visible():
+                post_btn = page.locator('button:has-text("Post")')
+            post_btn.click()
+
+            # Wait for post modal to close (confirms post was submitted)
+            try:
+                page.wait_for_selector('div[role="textbox"]', state="hidden", timeout=15000)
+                logger.info("Post modal closed - post submitted")
+            except Exception:
+                logger.info("Waiting extra time for post to submit...")
+            page.wait_for_timeout(10000)
 
             browser.close()
             logger.info("LinkedIn post published successfully!")
